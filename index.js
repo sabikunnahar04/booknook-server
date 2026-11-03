@@ -1,5 +1,5 @@
 import express from "express"
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import 'dotenv/config'
 import cors from "cors"
 const app = express()
@@ -34,8 +34,15 @@ export async function connectToMongoDB() {
   const result = await bookCollection
     .find()
     .sort({ _id: -1 })
-    .limit(6)
     .toArray();
+
+  res.send(result);
+});
+
+app.get("/books/:id", async (req, res) => {
+  const result = await bookCollection.findOne({
+    _id: new ObjectId(req.params.id),
+  });
 
   res.send(result);
 });
