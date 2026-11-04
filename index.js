@@ -48,6 +48,84 @@ app.get("/books/:id", async (req, res) => {
   res.send(result);
 });
 
+app.patch("/books/:id", async (req, res) => {
+  const bookId = req.params.id;
+  const email = req.query.email;
+
+  if (!ObjectId.isValid(bookId)) {
+    return res.status(400).send({
+      message: "Invalid book ID",
+    });
+  }
+
+  const { title, author, image, description, category, totalCopies } =
+    req.body;
+
+  const result = await bookCollection.updateOne(
+    {
+      _id: new ObjectId(bookId),
+      addedBy: email,
+    },
+    {
+      $set: {
+        title,
+        author,
+        image,
+        description,
+        category,
+        totalCopies: Number(totalCopies),
+      },
+    }
+  );
+
+  if (result.matchedCount === 0) {
+    return res.status(404).send({
+      message: "Book not found",
+    });
+  }
+
+  res.send({
+    message: "Book updated successfully",
+  });
+});
+
+app.delete("/books/:id", async (req, res) => {
+  const bookId = req.params.id;
+  const email = req.query.email;
+
+  if (!ObjectId.isValid(bookId)) {
+    return res.status(400).send({
+      message: "Invalid book ID",
+    });
+  }
+
+  const result = await bookCollection.deleteOne({
+    _id: new ObjectId(bookId),
+    addedBy: email,
+  });
+
+  if (result.deletedCount === 0) {
+    return res.status(404).send({
+      message: "Book not found",
+    });
+  }
+
+  res.send({
+    message: "Book deleted successfully",
+  });
+});
+
+app.get("/my-books", async (req, res) => {
+  const email = req.query.email;
+
+  const result = await bookCollection
+    .find({ addedBy: email })
+    .sort({ _id: -1 })
+    .toArray();
+
+  res.send(result);
+});
+
 app.get("/my-borrows", async (req, res) => {
   const email = req.query.email;
 
@@ -115,12 +193,12 @@ app.delete("/borrows/:id", async (req, res) => {
     });
   }
 
-  // Delete borrow record
+ 
   await borrowCollection.deleteOne({
     _id: new ObjectId(borrowId),
   });
 
-  // Increase available copies
+ 
   await bookCollection.updateOne(
     { _id: new ObjectId(borrow.bookId) },
     { $inc: { totalCopies: 1 } }
