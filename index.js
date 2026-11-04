@@ -21,6 +21,7 @@ export async function connectToMongoDB() {
  const mongoClient = await connectToMongoDB();
  const db = mongoClient.db("booknook")
  const bookCollection = db.collection("book")
+ const borrowCollection = db.collection("borrows");
 
 
  app.post("/books", async(req,res) => {
@@ -43,6 +44,44 @@ app.get("/books/:id", async (req, res) => {
   const result = await bookCollection.findOne({
     _id: new ObjectId(req.params.id),
   });
+
+  res.send(result);
+});
+
+app.post("/borrows", async (req, res) => {
+  const borrowData = req.body;
+
+ 
+  const book = await bookCollection.findOne({
+    _id: new ObjectId(borrowData.bookId),
+  });
+
+  if (!book || book.totalCopies <= 0) {
+    return res.status(400).send({
+      message: "Book is not available",
+    });
+  }
+
+  
+  const alreadyBorrowed = await borrowCollection.findOne({
+    bookId: borrowData.bookId,
+    userEmail: borrowData.userEmail,
+  });
+
+  if (alreadyBorrowed) {
+    return res.status(400).send({
+      message: "You have already borrowed this book",
+    });
+  }
+
+  
+  const result = await borrowCollection.insertOne(borrowData);
+
+  // Decrease available copies
+  await bookCollection.updateOne(
+    { _id: new ObjectId(borrowData.bookId) },
+    { $inc: { totalCopies: -1 } }
+  );
 
   res.send(result);
 });
