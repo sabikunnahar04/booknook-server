@@ -87,7 +87,7 @@ app.post("/borrows", async (req, res) => {
   
   const result = await borrowCollection.insertOne(borrowData);
 
-  // Decrease available copies
+  
   await bookCollection.updateOne(
     { _id: new ObjectId(borrowData.bookId) },
     { $inc: { totalCopies: -1 } }
@@ -96,6 +96,40 @@ app.post("/borrows", async (req, res) => {
   res.send(result);
 });
 
+app.delete("/borrows/:id", async (req, res) => {
+  const borrowId = req.params.id;
+
+  if (!ObjectId.isValid(borrowId)) {
+    return res.status(400).send({
+      message: "Invalid borrow ID",
+    });
+  }
+
+  const borrow = await borrowCollection.findOne({
+    _id: new ObjectId(borrowId),
+  });
+
+  if (!borrow) {
+    return res.status(404).send({
+      message: "Borrow record not found",
+    });
+  }
+
+  // Delete borrow record
+  await borrowCollection.deleteOne({
+    _id: new ObjectId(borrowId),
+  });
+
+  // Increase available copies
+  await bookCollection.updateOne(
+    { _id: new ObjectId(borrow.bookId) },
+    { $inc: { totalCopies: 1 } }
+  );
+
+  res.send({
+    message: "Book returned successfully",
+  });
+});
 //http://localhost:8000/books
 
 app.get("/", (req,res)=> {
