@@ -48,6 +48,16 @@ app.get("/books/:id", async (req, res) => {
   res.send(result);
 });
 
+app.get("/my-borrows", async (req, res) => {
+  const email = req.query.email;
+
+  const result = await borrowCollection
+    .find({ userEmail: email })
+    .toArray();
+
+  res.send(result);
+});
+
 app.post("/borrows", async (req, res) => {
   const borrowData = req.body;
 
