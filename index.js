@@ -25,7 +25,7 @@ export async function connectToMongoDB() {
  const borrowCollection = db.collection("borrows");
 
 const JWKS = createRemoteJWKSet(
-  new URL("/api/auth/jwks", "http://localhost:3000")
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
 );
 
 const verifyApi = async (req, res, next) => {
