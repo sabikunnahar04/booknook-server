@@ -203,7 +203,7 @@ app.post("/borrows", verifyApi, async (req, res) => {
   res.send(result);
 });
 
-app.delete("/borrows/:id", async (req, res) => {
+app.delete("/borrows/:id", verifyApi, async (req, res) => {
   const borrowId = req.params.id;
 
   if (!ObjectId.isValid(borrowId)) {
