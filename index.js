@@ -2,6 +2,7 @@ import express from "express"
 import { MongoClient, ObjectId } from 'mongodb';
 import 'dotenv/config'
 import cors from "cors"
+import { createRemoteJWKSet, jwtVerify } from "jose";
 const app = express()
 const PORT = 8000
 app.use(cors())
@@ -23,7 +24,35 @@ export async function connectToMongoDB() {
  const bookCollection = db.collection("book")
  const borrowCollection = db.collection("borrows");
 
+const JWKS = createRemoteJWKSet(
+  new URL("/api/auth/jwks", "http://localhost:3000")
+);
 
+const verifyApi = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send({
+      message: "Unauthorized!",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+
+    req.user = payload;
+
+    next();
+  } catch (error) {
+    console.log("JWT verification failed:", error);
+
+    return res.status(401).send({
+      message: "Invalid or expired token",
+    });
+  }
+};
  app.post("/books", async(req,res) => {
   const data = req.body
   const result = await bookCollection.insertOne(data)
@@ -40,7 +69,7 @@ export async function connectToMongoDB() {
   res.send(result);
 });
 
-app.get("/books/:id", async (req, res) => {
+app.get("/books/:id", verifyApi, async (req, res) => {
   const result = await bookCollection.findOne({
     _id: new ObjectId(req.params.id),
   });
@@ -115,7 +144,7 @@ app.delete("/books/:id", async (req, res) => {
   });
 });
 
-app.get("/my-books", async (req, res) => {
+app.get("/my-books", verifyApi, async (req, res) => {
   const email = req.query.email;
 
   const result = await bookCollection
@@ -126,7 +155,7 @@ app.get("/my-books", async (req, res) => {
   res.send(result);
 });
 
-app.get("/my-borrows", async (req, res) => {
+app.get("/my-borrows", verifyApi, async (req, res) => {
   const email = req.query.email;
 
   const result = await borrowCollection
