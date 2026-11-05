@@ -165,7 +165,7 @@ app.get("/my-borrows", verifyApi, async (req, res) => {
   res.send(result);
 });
 
-app.post("/borrows", async (req, res) => {
+app.post("/borrows", verifyApi, async (req, res) => {
   const borrowData = req.body;
 
  
